@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>GenAI & Prompting · AI Creator Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --ink:#1F2544; --soft:#5B6182; --line:#E3E5F0; --paper:#FFFFFF; --wash:#F6F7FC;
+  --indigo:#4F46E5; --pink:#E8457C; --green:#12A26B; --amber:#F2A20C; --sky:#1E9BD7; --red:#D93A4A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0}
+html{background:#FF7A93}
+body{background:linear-gradient(135deg,#4F8FFF 0%,#86B4FF 38%,#FF8EA4 70%,#FF4F6E 100%);background-attachment:fixed}
+.stk{width:118px;height:auto;flex:none;filter:drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(0 6px 8px rgba(31,37,68,.28))}
+.stk-row{display:flex;gap:10px;align-items:flex-end;margin:6px 0 10px}
+.stk-row .stk:nth-child(1){transform:rotate(-7deg)}.stk-row .stk:nth-child(2){transform:rotate(4deg) translateY(-6px)}.stk-row .stk:nth-child(3){transform:rotate(-3deg)}
+.homehead{display:flex;justify-content:space-between;gap:16px;align-items:center}
+.homehead .stk-row{flex:none}
+body{font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:1.5;color:var(--ink);min-height:100vh}
+button,input,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:4px solid var(--amber);outline-offset:2px}
+.brand{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:14px;z-index:40;font-size:13px;font-weight:700;color:var(--indigo);background:#fff;padding:4px 10px;border-radius:8px;border:2px solid var(--line)}
+h1{font-size:46px;line-height:1.08;margin:0 0 14px;letter-spacing:-.5px}
+h2{font-size:34px;line-height:1.15;margin:0 0 12px}
+h3{font-size:24px;line-height:1.25;margin:0 0 8px}
+p{margin:0 0 14px}
+.muted{color:var(--soft)}
+.screen{display:none}.screen.on{display:block}
+.btn{border:none;border-radius:12px;padding:14px 24px;font-weight:700;font-size:21px;background:var(--indigo);color:#fff}
+.btn:hover{filter:brightness(1.07)}
+.btn.pink{background:var(--pink)}.btn.green{background:var(--green)}
+.btn.line{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.btn.sm{font-size:17px;padding:9px 16px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-block;font-size:14px;font-weight:700;padding:4px 10px;border-radius:20px;color:#fff;margin:0 6px 6px 0;vertical-align:middle}
+.b-lit{background:var(--sky)}.b-act{background:var(--indigo)}.b-gdpr{background:var(--green)}.b-hum{background:var(--pink)}
+.msg{font-weight:700;min-height:30px;margin:12px 0}
+.msg.good{color:var(--green)}.msg.bad{color:var(--red)}
+
+/* Login */
+.login{max-width:1080px;margin:0 auto;padding:70px 22px 40px;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:start}
+.intro{background:rgba(255,255,255,.93);border-radius:26px;padding:26px}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.stack span{display:block;padding:12px 16px;border-radius:12px;font-weight:700;color:#fff;font-size:19px}
+.form{border:3px solid var(--ink);border-radius:20px;padding:26px;background:#fff;box-shadow:8px 8px 0 var(--indigo)}
+.form label{display:block;font-weight:700;margin:0 0 6px;font-size:21px}
+.form input{width:100%;padding:12px 14px;border-radius:10px;border:2px solid var(--line);font-size:22px;margin-bottom:18px}
+.pick{display:flex;gap:10px;margin-bottom:18px}
+.pick button{flex:1;padding:14px;border-radius:12px;border:2px solid var(--line);background:#fff;font-weight:700;font-size:22px}
+.pick button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* App layout */
+.app{display:grid;grid-template-columns:290px minmax(0,1fr);gap:16px;padding:16px;min-height:100vh;align-items:start}
+.side{padding:54px 18px 24px;background:rgba(255,255,255,.94);border-radius:22px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}
+.who{font-weight:700;font-size:19px;margin-bottom:2px}
+.side h4{font-size:15px;color:var(--soft);margin:22px 0 8px}
+.toc{display:flex;flex-direction:column;gap:6px}
+.toc button{text-align:left;border:none;background:#fff;border-radius:10px;padding:10px 12px;font-size:17px;border-left:6px solid var(--c);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.toc button.cur{background:var(--ink);color:#fff}
+.toc .tick{color:var(--green);font-weight:700}
+.toc button.cur .tick{color:#9FF0CB}
+.main{padding:40px 34px 50px;max-width:980px;width:100%;background:#fff;border-radius:26px;min-height:calc(100vh - 32px)}
+
+/* Home */
+.sec{margin-bottom:34px}
+.sechead{display:flex;align-items:baseline;gap:12px;border-bottom:3px solid var(--ink);padding-bottom:6px;margin-bottom:16px}
+.sechead h2{margin:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.card{text-align:left;border:2px solid var(--line);background:#fff;border-radius:16px;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.card .top{background:var(--c);color:#fff;padding:14px 16px;font-size:34px;display:flex;justify-content:space-between;align-items:center}
+.card .top small{font-size:14px;font-weight:700;background:rgba(255,255,255,.25);padding:3px 9px;border-radius:12px}
+.card .body{padding:14px 16px 16px}
+.card .t{font-weight:700;font-size:22px;display:block;margin-bottom:4px}
+.card .d{font-size:17px;color:var(--soft);display:block}
+
+/* Reader */
+.titlepage{min-height:62vh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;border-radius:24px;padding:40px;background:var(--c);color:#fff}
+.titlepage .badge{background:#fff;color:var(--ink)}
+.titlepage .num{font-size:20px;font-weight:700;opacity:.85;margin-bottom:10px}
+.titlepage h1{font-size:60px;color:#fff;max-width:70%}
+.titlepage .stk{position:absolute;right:30px;bottom:26px;width:170px;transform:rotate(5deg)}
+.page{border:2px solid var(--line);border-radius:20px;padding:28px;min-height:48vh}
+.page ul{padding-left:26px;margin:0 0 14px}.page li{margin-bottom:8px}
+.callout{background:var(--wash);border-left:6px solid var(--c);border-radius:10px;padding:14px 16px;margin:10px 0 14px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
+.cmp div{border-radius:12px;padding:14px;font-size:18px}
+.weak{background:#FFECEF;border:2px solid #F7B9C4}.strong{background:#E4F7EE;border:2px solid #A5E3C6}
+.ing{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}
+.ing div{border-radius:12px;padding:12px 8px;text-align:center;color:#fff;font-weight:700;font-size:17px}
+.ing small{display:block;font-weight:400;font-size:14px;margin-top:4px}
+.pager{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--ink)}
+
+/* Activities shared */
+.ahead{margin-bottom:14px}
+.howto{border:2px dashed var(--c);border-radius:14px;padding:12px 16px;margin-bottom:18px;font-size:18px}
+.howto b{color:var(--c)}
+.box{border:2px solid var(--line);border-radius:18px;padding:22px}
+.prog{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:16px}
+.prog i{display:block;height:100%;background:var(--c);width:0;transition:width .3s}
+.opt{display:block;width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:19px}
+.opt:hover:not(:disabled){border-color:var(--c)}
+.opt.right{border-color:var(--green);background:#E4F7EE}
+.opt.wrong{border-color:var(--red);background:#FFECEF}
+.chat{background:var(--wash);border-radius:14px;padding:14px 16px;margin-bottom:12px;font-size:18px}
+.chat .who2{font-size:14px;font-weight:700;color:var(--soft);display:block;margin-bottom:4px}
+.tags span{display:inline-block;font-size:14px;font-weight:700;padding:3px 9px;border-radius:10px;margin:0 6px 6px 0;background:#EEF0FF;color:var(--indigo)}
+
+/* Prompt Lab */
+.missions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.missions button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px;font-size:17px;font-weight:700;text-align:left}
+.missions button[aria-pressed="true"]{border-color:var(--c);background:#FFF5E0}
+.fld{margin-bottom:14px}
+.fld label{display:flex;justify-content:space-between;font-weight:700;font-size:18px;margin-bottom:4px;gap:8px}
+.fld label span{color:var(--c)}
+.fld textarea{width:100%;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:18px;min-height:52px;resize:vertical}
+.fld textarea.full{border-color:var(--green)}
+.eg{font-size:15px;color:var(--soft);background:none;border:none;padding:0;text-decoration:underline}
+.meter{height:18px;border-radius:10px;background:var(--line);overflow:hidden;margin:6px 0 10px}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--amber),var(--green));transition:width .3s}
+.preview{background:var(--ink);color:#fff;border-radius:14px;padding:16px;font-size:18px;white-space:pre-wrap;min-height:60px}
+
+/* Hallucination */
+.stmt{display:block;width:100%;text-align:left;border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px 16px;margin-bottom:8px;font-size:19px}
+.stmt.right{border-color:var(--green);background:#E4F7EE}.stmt.wrong{border-color:var(--red);background:#FFECEF}
+
+/* Responsible */
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.three button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:14px 8px;font-weight:700;font-size:18px}
+.three button.right{border-color:var(--green);background:#E4F7EE}.three button.wrong{border-color:var(--red);background:#FFECEF}
+.scen{font-size:23px;font-weight:700;margin-bottom:16px;line-height:1.35}
+
+/* Studio */
+.steps{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.steps span{font-size:15px;font-weight:700;padding:5px 11px;border-radius:14px;background:var(--line);color:var(--soft)}
+.steps span.on{background:var(--c);color:#fff}
+.kinds{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kinds button{border:2px solid var(--line);background:#fff;border-radius:14px;padding:16px;text-align:left;font-size:18px}
+.kinds button b{display:block;font-size:21px}
+.kinds button[aria-pressed="true"]{border-color:var(--c);background:#FFEFF4}
+.checks label{display:flex;gap:10px;align-items:flex-start;padding:10px 0;font-size:19px;border-bottom:1px solid var(--line)}
+.checks input{width:24px;height:24px;margin-top:3px;flex:none}
+.cc{border:3px solid var(--ink);border-radius:18px;padding:20px;box-shadow:6px 6px 0 var(--pink)}
+.cc pre{white-space:pre-wrap;font-family:inherit;font-size:17px;background:var(--wash);padding:10px 12px;border-radius:10px;margin:4px 0 12px}
+
+/* Results */
+.rrow{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.rrow b{font-size:20px}
+
+@media (max-width:860px){
+  body{font-size:18px}
+  h1{font-size:36px}.titlepage h1{font-size:42px}
+  .login{grid-template-columns:1fr;padding-top:64px}
+  .app{grid-template-columns:1fr}
+  .side{position:static;max-height:none;padding-top:50px}
+  .main{padding:24px 18px 50px;min-height:0}
+  .app{padding:10px;gap:10px}
+  .stk{width:88px}.titlepage .stk{width:110px;right:14px;bottom:14px}.titlepage h1{max-width:100%}
+  .homehead .stk-row{display:none}
+  .ing{grid-template-columns:repeat(2,1fr)}
+  .cmp,.missions,.three,.kinds{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="brand">Young IT Germany</div>
+
+<!-- LOGIN -->
+<section id="s-login" class="screen on">
+  <div class="login">
+    <div class="intro">
+      <div class="stk-row" id="loginStk"></div>
+      <h1>GenAI &amp; Prompting<br>AI Creator Lab</h1>
+      <p style="font-size:23px">Learn how generative AI works, write prompts that actually get you what you want, and create with AI the smart and responsible way.</p>
+      <div class="stack">
+        <span style="background:var(--sky)">3 short topics to read</span>
+        <span style="background:var(--amber)">5 hands-on activities</span>
+        <span style="background:var(--pink)">Your own AI Creator card at the end</span>
+      </div>
+    </div>
+    <div class="form">
+      <h2>Register to start</h2>
+      <label for="nm">Your name</label>
+      <input id="nm" maxlength="40" autocomplete="off" placeholder="First and last name">
+      <label for="cls">Your class</label>
+      <input id="cls" maxlength="20" autocomplete="off" placeholder="Type your class">
+
+      <div class="msg bad" id="lerr"></div>
+      <button class="btn pink" id="go" style="width:100%">Enter Activities</button>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="s-app" class="screen">
+  <div class="app">
+    <aside class="side">
+      <div class="who" id="who"></div>
+      <div class="muted" style="font-size:15px">Pick any chapter, in any order.</div>
+      <div class="toc" style="margin-top:14px"><button id="tHome" style="--c:var(--ink)">Home</button></div>
+      <h4>Learn</h4><div class="toc" id="tLearn"></div>
+      <h4>Activities</h4><div class="toc" id="tAct"></div>
+      <h4>Finish</h4><div class="toc"><button id="tRes" style="--c:var(--pink)">My result &amp; download</button></div>
+      <button class="btn line sm" id="newSt" style="margin-top:26px;width:100%">New student</button>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+</section>
+
+<script>
+/* ============ state ============ */
+const KEY='yig-genai-creator-89';
+let S={name:'',klass:'',read:{},res:{}};
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null');if(v&&v.name)S=v}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const clsLabel=()=>/^(class|grade|std)/i.test(S.klass)?S.klass:'Class '+S.klass;
+const B={lit:'<span class="badge b-lit">AI Literacy</span>',act:'<span class="badge b-act">EU AI Act</span>',gdpr:'<span class="badge b-gdpr">GDPR</span>',hum:'<span class="badge b-hum">Human Oversight</span>'};
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));window.scrollTo(0,0)}
+let dlP=null;const getDl=()=>dlP||(dlP=(window.claude&&typeof window.claude.use==='function')?window.claude.use('downloads').catch(()=>null):Promise.resolve(null));getDl();
+
+/* ============ content ============ */
+const LEARN=[
+ {id:'l1',stk:'thinker',icon:'✨',c:'var(--sky)',title:'What is Generative AI?',d:'How AI creates text, images, music and code.',badges:['lit'],pages:[
+  `<h2>AI that creates</h2>
+   <p><b>Generative AI</b> is AI that <b>creates new content</b>: text, images, music, voices, videos or computer code.</p>
+   <p>It learns patterns from a huge number of examples (books, websites, pictures, songs). Then it uses those patterns to make something new when you ask it.</p>
+   <div class="callout" style="--c:var(--sky)"><b>Normal AI</b> recognises or sorts things (is this a cat?). <b>Generative AI</b> makes things (draw me a cat wearing sunglasses).</div>`,
+  `<h2>Where you already see it</h2>
+   <ul>
+    <li><b>Chatbots</b> like ChatGPT, Gemini and Claude write answers, stories and explanations.</li>
+    <li><b>Image generators</b> turn a sentence into a picture.</li>
+    <li><b>Music and voice tools</b> make songs, sound effects and voiceovers.</li>
+    <li><b>Coding helpers</b> suggest code for apps and games.</li>
+   </ul>
+   <p>All of them start with the same thing: <b>your instruction</b>, called a <b>prompt</b>.</p>`,
+  `<h2>How it really works</h2>
+   <p>A text AI does not “know” things the way you do. It <b>predicts</b> the next word that is likely to come, again and again, very fast.</p>
+   <div class="callout" style="--c:var(--sky)">“The sky is …” → the AI predicts “blue”, because it saw that pattern millions of times.</div>
+   <p>That is why it can sound very confident and still be <b>wrong</b>. When AI makes up something false, we call it a <b>hallucination</b>. You will learn to catch these later.</p>
+   <p>${B.lit} Understanding how AI works is part of AI literacy, which the EU AI Act asks schools and companies to build.</p>`
+ ]},
+ {id:'l2',stk:'coder',icon:'🧩',c:'var(--amber)',title:'The art of prompting',d:'The 5 ingredients of a prompt that works.',badges:['lit'],pages:[
+  `<h2>Why prompts matter</h2>
+   <p>AI can only work with what you give it. A short, vague prompt makes the AI <b>guess</b>. A clear prompt gets you what you actually want.</p>
+   <div class="cmp"><div class="weak"><b>Vague prompt</b><br>“Write about space.”<br><br>→ A long, boring paragraph you can’t use.</div>
+   <div class="strong"><b>Clear prompt</b><br>“Write 5 surprising space facts for our class quiz night, one line each, with a fun emoji.”<br><br>→ Exactly what you need.</div></div>`,
+  `<h2>The 5 ingredients</h2>
+   <div class="ing">
+    <div style="background:var(--indigo)">Role<small>Who should the AI be?</small></div>
+    <div style="background:var(--pink)">Task<small>What should it make?</small></div>
+    <div style="background:var(--sky)">Context<small>For whom? Why?</small></div>
+    <div style="background:var(--green)">Format<small>What shape?</small></div>
+    <div style="background:var(--amber)">Limits<small>Length, tone, rules</small></div>
+   </div>
+   <div class="callout" style="--c:var(--amber)"><b>Role:</b> You are a friendly science teacher. <b>Task:</b> Explain gravity. <b>Context:</b> for a student who finds physics hard. <b>Format:</b> 4 short bullet points and one real-life example. <b>Limits:</b> under 80 words, no formulas.</div>`,
+  `<h2>Talk to it like a conversation</h2>
+   <p>The first answer is a <b>draft</b>, not the final result. Good creators improve it step by step:</p>
+   <ul>
+    <li>“Make it shorter.”</li>
+    <li>“Use simpler words.”</li>
+    <li>“Give me 3 more options in a funny style.”</li>
+    <li>“Turn this into a table.”</li>
+   </ul>
+   <p>This is called <b>iterating</b>. Professionals rarely get the best result from their first prompt.</p>
+   <p>${B.lit}</p>`
+ ]},
+ {id:'l3',stk:'reader',icon:'🛡️',c:'var(--pink)',title:'Being a responsible AI creator',d:'Facts, labels, privacy and respect.',badges:['act','gdpr','hum'],pages:[
+  `<h2>1. You are the boss, not the AI</h2>
+   <p>AI can hallucinate. Always <b>check important facts</b> with a textbook, a trusted website or your teacher before you use or share them.</p>
+   <p>For health, money or safety questions, always ask a real adult or expert.</p>
+   <p>${B.hum} A human should always check and decide, especially when it matters.</p>`,
+  `<h2>2. Say when AI helped</h2>
+   <p>If you share an image, voice, video or text made with AI, <b>label it</b>, for example: “Made with help from AI.”</p>
+   <p>Never make fake videos, photos or voices of <b>real people</b>, such as friends or teachers. These are called <b>deepfakes</b> and can hurt people badly.</p>
+   <p>${B.act} The EU AI Act says AI-generated content and deepfakes must be clearly marked, so people are not fooled.</p>`,
+  `<h2>3. Protect personal data</h2>
+   <p>Don’t type personal details into AI tools: full names, phone numbers, addresses, passwords, or photos of other people.</p>
+   <div class="callout" style="--c:var(--green)">Instead of “Write an invite for Riya Shah, 9876543210, 12 Park Road”, write “Write an invite for [friend’s name] for a birthday party on Saturday.”</div>
+   <p>${B.gdpr} GDPR protects people’s personal data in Europe. Your data and your friends’ data belong to them.</p>`,
+  `<h2>4. Create with honesty</h2>
+   <ul>
+    <li>Use AI to brainstorm, explain and improve, not to hand in work as if you did it all alone.</li>
+    <li>If your teacher allows AI, say how you used it.</li>
+    <li>Add your own ideas, style and checking. That is what makes you a creator, not a copier.</li>
+   </ul>
+   <p>${B.act} ${B.hum}</p>`
+ ]}
+];
+const ACTS=[
+ {id:'a1',icon:'🩺',c:'var(--indigo)',title:'Prompt Doctor',d:'Fix 6 weak prompts by picking the best upgrade.'},
+ {id:'a2',icon:'🧪',c:'var(--amber)',title:'Prompt Builder Lab',d:'Build a full prompt using the 5 ingredients.'},
+ {id:'a3',icon:'🔍',c:'var(--sky)',title:'Hallucination Hunter',d:'Find the made-up fact in each AI answer.'},
+ {id:'a4',icon:'⚖️',c:'var(--green)',title:'Creator’s Choice',d:'Decide: go ahead, label it, or don’t do it.'},
+ {id:'a5',icon:'🎬',c:'var(--pink)',title:'AI Creator Studio',d:'Plan your own AI creation and get your creator card.'}
+];
+
+
+/* ============ kid stickers (original SVG) ============ */
+const SK={a:'#F2C9A0',b:'#C98E5E',c:'#8D5A3B',d:'#F7DCC0'};
+function kid(o){
+  const s=o.skin,hc=o.hair,sh=o.shirt,pa=o.pants||'#2E3A6B';
+  const hair={
+    short:`<path d="M40 38 Q40 14 60 14 Q80 14 80 38 Q74 25 60 25 Q46 25 40 38Z" fill="${hc}"/>`,
+    long:`<path d="M37 36 Q37 11 60 11 Q83 11 83 36 L85 64 Q76 62 76 44 Q70 27 60 27 Q50 27 44 44 Q44 62 35 64Z" fill="${hc}"/>`,
+    bun:`<circle cx="60" cy="11" r="9" fill="${hc}"/><path d="M40 38 Q40 15 60 15 Q80 15 80 38 Q74 26 60 26 Q46 26 40 38Z" fill="${hc}"/>`,
+    curly:`<g fill="${hc}"><circle cx="44" cy="28" r="8"/><circle cx="52" cy="19" r="9"/><circle cx="63" cy="17" r="9"/><circle cx="73" cy="22" r="8"/><circle cx="78" cy="31" r="7"/><circle cx="41" cy="36" r="6"/></g>`
+  }[o.style];
+  const arm=(d,hx,hy)=>`<path d="${d}" stroke="${sh}" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="${hx}" cy="${hy}" r="5.5" fill="${s}"/>`;
+  const A={
+    downL:arm('M43 68 Q34 82 36 96',36,98), downR:arm('M77 68 Q86 82 84 96',84,98),
+    upL:arm('M43 68 Q29 56 27 40',27,38), upR:arm('M77 68 Q91 56 93 40',93,38),
+    fwdL:arm('M43 68 Q40 84 52 86',54,86), fwdR:arm('M77 68 Q80 84 68 86',66,86),
+    chinR:arm('M77 68 Q92 72 70 58',68,57)
+  };
+  const legs=o.sit?'':`<rect x="45" y="98" width="12" height="26" rx="5" fill="${pa}"/><rect x="63" y="98" width="12" height="26" rx="5" fill="${pa}"/><ellipse cx="50" cy="126" rx="9" ry="5" fill="#1F2544"/><ellipse cx="70" cy="126" rx="9" ry="5" fill="#1F2544"/>`;
+  const face=`<circle cx="60" cy="40" r="20" fill="${s}"/>${hair}<circle cx="53" cy="41" r="2.7" fill="#2B2140"/><circle cx="67" cy="41" r="2.7" fill="#2B2140"/><ellipse cx="48" cy="48" rx="3.5" ry="2" fill="#FF8FA3" opacity=".7"/><ellipse cx="72" cy="48" rx="3.5" ry="2" fill="#FF8FA3" opacity=".7"/><path d="${o.open?'M53 48 Q60 57 67 48Z':'M54 49 Q60 54 66 49'}" ${o.open?'fill="#8B2E3C"':'stroke="#2B2140" stroke-width="2.5" fill="none" stroke-linecap="round"'}/>`;
+  const body=`<rect x="40" y="60" width="40" height="42" rx="14" fill="${sh}"/>`;
+  return `<svg class="stk" viewBox="0 0 140 140" role="img" aria-label="${o.label}"><g transform="translate(10,4)">${o.back||''}${legs}${body}${(o.arms||[]).map(a=>A[a]).join('')}${face}${o.front||''}</g></svg>`;
+}
+const STK={
+  wave:()=>kid({label:'Kid waving hello',skin:SK.b,hair:'#2B2140',style:'curly',shirt:'#FFB020',arms:['downL','upR'],open:true,
+    front:`<path d="M100 30 q6 6 0 14 M106 26 q9 10 0 22" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>`}),
+  coder:()=>kid({label:'Kid coding on a laptop',skin:SK.a,hair:'#5A3A22',style:'long',shirt:'#4F46E5',arms:['fwdL','fwdR'],sit:true,
+    front:`<rect x="34" y="72" width="52" height="32" rx="4" fill="#1F2544"/><text x="60" y="93" text-anchor="middle" font-family="Arial" font-weight="700" font-size="14" fill="#7CF5C8">&lt;/&gt;</text><path d="M24 110 L96 110 L88 103 L32 103Z" fill="#D9DEEA"/>`}),
+  painter:()=>kid({label:'Kid painting',skin:SK.c,hair:'#111',style:'short',shirt:'#12A26B',arms:['downL','upR'],
+    front:`<line x1="93" y1="38" x2="106" y2="20" stroke="#8B5A2B" stroke-width="4" stroke-linecap="round"/><circle cx="108" cy="17" r="5" fill="#E8457C"/><ellipse cx="30" cy="98" rx="14" ry="9" fill="#F5E1B8"/><circle cx="25" cy="96" r="2.8" fill="#E8457C"/><circle cx="32" cy="94" r="2.8" fill="#1E9BD7"/><circle cx="36" cy="100" r="2.8" fill="#F2A20C"/>`}),
+  reader:()=>kid({label:'Kid reading a book',skin:SK.d,hair:'#B5651D',style:'bun',shirt:'#E8457C',arms:['fwdL','fwdR'],
+    front:`<path d="M38 78 L60 84 L82 78 L82 100 L60 106 L38 100Z" fill="#fff" stroke="#4F46E5" stroke-width="3" stroke-linejoin="round"/><line x1="60" y1="84" x2="60" y2="106" stroke="#4F46E5" stroke-width="3"/>`}),
+  podcast:()=>kid({label:'Kid recording a podcast',skin:SK.b,hair:'#2B2140',style:'short',shirt:'#1E9BD7',arms:['downL','fwdR'],open:true,
+    front:`<path d="M39 40 Q39 13 60 13 Q81 13 81 40" stroke="#1F2544" stroke-width="5" fill="none"/><rect x="33" y="34" width="9" height="15" rx="4" fill="#1F2544"/><rect x="78" y="34" width="9" height="15" rx="4" fill="#1F2544"/><line x1="104" y1="74" x2="104" y2="126" stroke="#555" stroke-width="4"/><rect x="97" y="54" width="14" height="24" rx="7" fill="#333"/><ellipse cx="104" cy="127" rx="12" ry="3" fill="#555"/>`}),
+  thinker:()=>kid({label:'Kid with a bright idea',skin:SK.a,hair:'#111',style:'long',shirt:'#F2A20C',arms:['downL','chinR'],
+    front:`<circle cx="104" cy="20" r="11" fill="#FFD43B"/><rect x="99" y="30" width="10" height="7" rx="2" fill="#9AA0B5"/><path d="M104 2 v-2 M88 8 l-3-3 M120 8 l3-3 M84 22 h-4 M124 22 h4" stroke="#FFD43B" stroke-width="3" stroke-linecap="round"/>`}),
+  party:()=>kid({label:'Kid celebrating',skin:SK.c,hair:'#2B2140',style:'bun',shirt:'#E8457C',arms:['upL','upR'],open:true,
+    back:`<g><rect x="12" y="20" width="6" height="10" fill="#4F46E5" transform="rotate(20 15 25)"/><circle cx="110" cy="60" r="4" fill="#12A26B"/><rect x="104" y="14" width="6" height="10" fill="#F2A20C" transform="rotate(-25 107 19)"/><circle cx="16" cy="64" r="4" fill="#1E9BD7"/><path d="M60 0 l3 6 7 1 -5 5 1 7 -6-3 -6 3 1-7 -5-5 7-1z" fill="#FFD43B"/></g>`})
+};
+
+/* ============ login ============ */
+
+$('go').onclick=()=>{
+  const n=$('nm').value.trim();
+  if(!n){$('lerr').textContent='Please type your name.';$('nm').focus();return}
+  const c=$('cls').value.trim();
+  if(!c){$('lerr').textContent='Please type your class.';$('cls').focus();return}
+  S={name:n,klass:c,read:{},res:{}};save();enterApp();
+};
+$('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('cls').focus()});
+$('cls').addEventListener('keydown',e=>{if(e.key==='Enter')$('go').click()});
+$('newSt').onclick=()=>{if(!confirm('Start as a new student? Progress on this device will be cleared.'))return;
+  S={name:'',klass:'',read:{},res:{}};save();$('nm').value='';$('cls').value='';show('s-login')};
+
+/* ============ navigation ============ */
+let cur='home';
+function toc(){
+  $('who').textContent=S.name+' · '+clsLabel();
+  $('tLearn').innerHTML=LEARN.map((l,i)=>`<button data-go="${l.id}" style="--c:${l.c}" class="${cur===l.id?'cur':''}"><span>${i+1}. ${l.title}</span>${S.read[l.id]?'<span class="tick">✓</span>':''}</button>`).join('');
+  $('tAct').innerHTML=ACTS.map((a,i)=>`<button data-go="${a.id}" style="--c:${a.c}" class="${cur===a.id?'cur':''}"><span>${a.icon} ${a.title}</span>${S.res[a.id]?'<span class="tick">✓</span>':''}</button>`).join('');
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+  $('tHome').classList.toggle('cur',cur==='home');$('tRes').classList.toggle('cur',cur==='res');
+}
+$('tHome').onclick=()=>go('home');$('tRes').onclick=()=>go('res');
+function go(id){cur=id;toc();window.scrollTo(0,0);
+  if(id==='home')return home();if(id==='res')return results();
+  const l=LEARN.find(x=>x.id===id);if(l)return reader(l,-1);
+  ({a1,a2,a3,a4,a5})[id]();
+}
+function enterApp(){show('s-app');go('home')}
+function record(id,data){S.res[id]=Object.assign({at:new Date().toISOString()},data);save();toc()}
+
+/* ============ home ============ */
+function home(){
+  const nr=Object.keys(S.read).length,na=Object.keys(S.res).length;
+  $('main').innerHTML=`
+   <div class="homehead"><div><h1>Welcome, ${esc(S.name.split(' ')[0])}!</h1>
+   <p style="font-size:22px">Read the topics, then try the activities. You can go in any order. When you’re done, download your result and send it to your teacher.</p>
+   <p class="muted">Topics read: ${nr} of 3 · Activities done: ${na} of 5</p></div><div class="stk-row">${STK.reader()}${STK.podcast()}</div></div>
+   <div class="sec"><div class="sechead"><h2>Learn</h2><span class="muted">Short topics</span></div>
+    <div class="cards">${LEARN.map((l,i)=>card(l,'Topic '+(i+1),S.read[l.id])).join('')}</div></div>
+   <div class="sec"><div class="sechead"><h2>Activities</h2><span class="muted">Hands-on practice</span></div>
+    <div class="cards">${ACTS.map((a,i)=>card(a,'Activity '+(i+1),S.res[a.id])).join('')}</div></div>`;
+  document.querySelectorAll('.card').forEach(c=>c.onclick=()=>go(c.dataset.id));
+}
+function card(x,lab,done){return `<button class="card" data-id="${x.id}" style="--c:${x.c}"><div class="top">${x.icon}<small>${done?'✓ Done':lab}</small></div><div class="body"><span class="t">${x.title}</span><span class="d">${x.d}</span></div></button>`}
+
+/* ============ reader ============ */
+function reader(l,p){
+  const idx=LEARN.indexOf(l);
+  if(p<0){
+    $('main').innerHTML=`<div class="titlepage" style="--c:${l.c}"><div class="num">Topic ${idx+1}</div><h1>${l.title}</h1><div>${l.badges.map(b=>B[b]).join('')}</div>${STK[l.stk]()}
+      <div style="margin-top:26px"><button class="btn line" id="rs">Start reading</button></div></div>`;
+    $('rs').onclick=()=>reader(l,0);return;
+  }
+  const last=p===l.pages.length-1;
+  $('main').innerHTML=`<p class="muted" style="font-weight:700">Topic ${idx+1}: ${l.title}</p><div class="page">${l.pages[p]}</div>
+    <div class="pager"><button class="btn line sm" id="pv">${p===0?'Title page':'Back'}</button>
+    <div class="dots">${l.pages.map((_,i)=>`<i class="${i===p?'on':''}"></i>`).join('')}</div>
+    <button class="btn ${last?'green':''} sm" id="nx">${last?'Finish topic':'Next'}</button></div>`;
+  $('pv').onclick=()=>reader(l,p-1);
+  $('nx').onclick=()=>{if(last){S.read[l.id]=true;save();go('home')}else reader(l,p+1)};
+}
+
+/* ============ activity shell ============ */
+function shellA(id,steps){
+  const a=ACTS.find(x=>x.id===id),i=ACTS.indexOf(a);
+  $('main').innerHTML=`<div class="ahead" style="--c:${a.c}"><p class="muted" style="font-weight:700;margin:0">Activity ${i+1}</p><h2>${a.icon} ${a.title}</h2></div>
+   <div class="howto" style="--c:${a.c}"><b>How to do it:</b> ${steps}</div><div id="stage" style="--c:${a.c}"></div>`;
+  return $('stage');
+}
+const backBtn=()=>'<button class="btn line sm" data-home>Back to home</button>';
+const wireHome=()=>document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>go('home'));
+
+/* ============ A1 Prompt Doctor ============ */
+const A1=[
+ {w:'Write about dogs.',out:'Dogs are animals. They are pets. Many people have dogs. Dogs can be big or small…',
+  o:['Write about dogs please.','Write a 5-line funny poem about a lazy dog, for our class poetry wall.','WRITE ABOUT DOGS NOW!!!'],r:1,tags:['Task','Context','Limits'],
+  why:'It says exactly what to make (a poem), how long (5 lines), the tone (funny) and who it is for.'},
+ {w:'Help me with my project.',out:'Sure! What kind of project? Could you tell me more?',
+  o:['Help me with my project, it is very important.','Do my whole project for me.','I’m making a school science project on solar energy. Give me 3 simple experiment ideas I can do at home with cheap materials.'],r:2,tags:['Context','Task','Limits'],
+  why:'The AI now knows the subject, the situation, and what kind of ideas you need. “Do my whole project” isn’t honest, and it doesn’t help you learn.'},
+ {w:'Make a picture of a city.',out:'(A random grey city photo that looks like every other city.)',
+  o:['A futuristic Indian city at sunset, solar panels on rooftops, electric buses, bright cartoon style, wide view.','Make a really good picture of a city.','City. Picture. Nice.'],r:0,tags:['Context','Format','Limits'],
+  why:'Image prompts need details: place, time of day, objects, style and camera view.'},
+ {w:'Explain photosynthesis.',out:'Photosynthesis is the process by which chlorophyll-containing organisms convert light energy into chemical energy via the Calvin cycle…',
+  o:['Explain photosynthesis in more detail.','Explain photosynthesis to a 13-year-old in 4 short bullet points with one real-life example.','Explain photosynthesis again.'],r:1,tags:['Context','Format','Limits'],
+  why:'Telling the AI who it is for and what shape to use makes the answer easy to understand.'},
+ {w:'Give me facts about Mars.',out:'Mars has two moons, it is red because of iron, and it has the tallest volcano… (Are all of these true?)',
+  o:['Give me 5 facts about Mars and tell me which ones I should double-check with a trusted source.','Give me lots and lots of facts about Mars.','Give me facts about Mars that are 100% true.'],r:0,tags:['Format','Human check'],
+  why:'Asking for fewer facts and a checklist helps you verify them. No prompt can make AI 100% correct, so you still check.'},
+ {w:'Write a story.',out:'Once upon a time there was a boy. He went to the forest. The end.',
+  o:['Write a long story.','Write a better story than last time.','You are a comic writer. Write a 6-panel comic script about a robot who is afraid of the dark. For each panel give the scene and the dialogue.'],r:2,tags:['Role','Task','Format'],
+  why:'Giving the AI a role, a clear idea and a format (6 panels with scene and dialogue) makes it creative in a useful way.'}
+];
+function a1(){
+  const st=shellA('a1','Read the weak prompt and the poor answer it got. Pick the upgraded prompt that fixes it best. Read why, then go to the next patient.');
+  let i=0,score=0;
+  const draw=()=>{
+    st.innerHTML=`<div class="box"><div class="prog"><i style="width:${i/A1.length*100}%"></i></div><div id="b"></div></div>`;
+    const b=$('b');
+    if(i>=A1.length){
+      record('a1',{score,total:A1.length,detail:`Picked the best upgrade ${score} of ${A1.length} times.`});
+      b.innerHTML=`<h3>All ${A1.length} prompts healed! 🩺</h3><p>You chose the best upgrade ${score} of ${A1.length} times. Remember the ingredients: role, task, context, format, limits.</p><div class="row">${backBtn()}<button class="btn sm" id="ag">Try again</button></div>`;
+      wireHome();$('ag').onclick=a1;return;
+    }
+    const c=A1[i],order=shuffle(c.o.map((t,k)=>({t,k})));
+    b.innerHTML=`<p class="muted">Patient ${i+1} of ${A1.length}</p>
+      <div class="chat"><span class="who2">Weak prompt</span>${c.w}</div>
+      <div class="chat" style="background:#FFF4F6"><span class="who2">What the AI gave back</span>${c.out}</div>
+      <h3>Which upgrade fixes it best?</h3>
+      ${order.map(o=>`<button class="opt" data-k="${o.k}">${esc(o.t)}</button>`).join('')}
+      <div id="fb"></div>`;
+    b.querySelectorAll('.opt').forEach(btn=>btn.onclick=()=>{
+      const k=+btn.dataset.k,ok=k===c.r;if(ok)score++;
+      b.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.k===c.r)x.classList.add('right')});
+      if(!ok)btn.classList.add('wrong');
+      $('fb').innerHTML=`<div class="msg ${ok?'good':'bad'}">${ok?'Great diagnosis!':'Close, but the green one is stronger.'}</div>
+        <p>${c.why}</p><div class="tags">Added: ${c.tags.map(t=>`<span>${t}</span>`).join('')}</div>
+        <button class="btn sm" id="n" style="margin-top:8px">Next patient</button>`;
+      $('n').onclick=()=>{i++;draw()};
+    });
+  };draw();
+}
+
+/* ============ A2 Prompt Builder Lab ============ */
+const MISSIONS=[
+ {t:'🎨 Science Fair poster',eg:{role:'You are a creative poster designer.',task:'Write a catchy headline and 3 short lines for a poster.',context:'It is for our school Science Fair next month, for students and parents.',format:'One headline, then 3 bullet points.',limits:'Under 40 words, friendly tone, no hard words.'}},
+ {t:'📚 Quiz me for my test',eg:{role:'You are a patient science teacher.',task:'Make 5 multiple-choice questions on the water cycle.',context:'I am in middle school and my test is next week.',format:'Each question with 4 options, answers listed at the end.',limits:'Simple English, include one tricky question.'}},
+ {t:'🎥 60-second video script',eg:{role:'You are a YouTube science creator.',task:'Write a script explaining why the sky is blue.',context:'For teenagers who think science is boring.',format:'A hook, 3 short scenes, and an ending line.',limits:'Under 150 words, add one fun joke.'}}
+];
+const PARTS=[['role','Role','Who should the AI be?'],['task','Task','What exactly should it make?'],['context','Context','For whom, why, or what situation?'],['format','Format','What shape: list, table, script…?'],['limits','Limits','Length, tone, rules']];
+function a2(){
+  const st=shellA('a2','Choose a mission. Write each of the 5 ingredients in your own words (tap “See an example” if you’re stuck). Watch the meter fill up and read how the AI would respond. Save your prompt when all 5 parts are done.');
+  const prev=S.res.a2;let m=prev?prev.mission:0;const v=prev?Object.assign({},prev.parts):{role:'',task:'',context:'',format:'',limits:''};
+  st.innerHTML=`<div class="box">
+    <h3>1. Pick your mission</h3>
+    <div class="missions">${MISSIONS.map((x,i)=>`<button data-m="${i}" aria-pressed="${i===m}">${x.t}</button>`).join('')}</div>
+    <h3>2. Write your ingredients</h3>
+    ${PARTS.map(([k,n,q])=>`<div class="fld"><label for="f-${k}"><span>${n}</span><button class="eg" data-eg="${k}">See an example</button></label>
+      <textarea id="f-${k}" data-k="${k}" placeholder="${q}">${esc(v[k])}</textarea></div>`).join('')}
+    <h3>3. Prompt strength</h3>
+    <div class="meter"><i id="mt"></i></div><p id="ml" style="font-weight:700"></p>
+    <div class="preview" id="pv"></div>
+    <p class="muted" id="ai" style="margin-top:12px"></p>
+    <div class="row"><button class="btn" id="sv">Save my prompt</button>${backBtn()}</div><div class="msg" id="sm"></div></div>`;
+  wireHome();
+  const filled=k=>v[k].trim().split(/\s+/).filter(Boolean).length>=(k==='task'?3:2);
+  function upd(){
+    const n=PARTS.filter(([k])=>filled(k)).length;
+    $('mt').style.width=n*20+'%';
+    PARTS.forEach(([k])=>$('f-'+k).classList.toggle('full',filled(k)));
+    const miss=PARTS.filter(([k])=>!filled(k)).map(p=>p[1]);
+    $('ml').textContent=`${n} of 5 ingredients`+(miss.length?` · Missing: ${miss.join(', ')}`:' · Complete!');
+    const txt=PARTS.map(([k])=>v[k].trim()).filter(Boolean).join(' ');
+    $('pv').textContent=txt||'Your full prompt will appear here as you type.';
+    $('ai').textContent=n<=1?'How the AI would respond: it has to guess what you want. Expect something generic you probably can’t use.'
+      :n<=3?'How the AI would respond: it knows the job, but may pick the wrong style, length or audience.'
+      :n===4?'How the AI would respond: nearly spot on. Add the missing ingredient for a perfect fit.'
+      :'How the AI would respond: exactly on target. It knows who to be, what to make, for whom, in what shape and with which limits.';
+    $('sv').disabled=n<5;
+  }
+  st.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{v[t.dataset.k]=t.value;upd()});
+  st.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{m=+b.dataset.m;st.querySelectorAll('[data-m]').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'))});
+  st.querySelectorAll('[data-eg]').forEach(b=>b.onclick=e=>{e.preventDefault();const k=b.dataset.eg;b.textContent='e.g. '+MISSIONS[m].eg[k];b.style.textDecoration='none';b.style.textAlign='right'});
+  $('sv').onclick=()=>{
+    const full=PARTS.map(([k])=>v[k].trim()).join(' ');
+    record('a2',{mission:m,parts:Object.assign({},v),prompt:full,score:5,total:5,detail:`Built a complete 5-ingredient prompt for: ${MISSIONS[m].t.replace(/^\S+\s/,'')}.`});
+    $('sm').className='msg good';$('sm').textContent='Saved! Your prompt will appear in your result. Try it in a real AI tool with your teacher.';
+  };
+  upd();
+}
+
+/* ============ A3 Hallucination Hunter ============ */
+const A3=[
+ {topic:'Tell me about the Moon.',s:['The Moon takes about 27 days to travel once around Earth.','There is almost no air on the Moon, so you could not breathe there.','Neil Armstrong was the first person to walk on the Moon, in 1969.','The Moon makes its own light, just like the Sun.'],f:3,why:'The Moon has no light of its own. It reflects sunlight.'},
+ {topic:'Give me some facts about India.',s:['New Delhi is the capital of India.','Mount Everest is in the state of Gujarat.','The Ganga is one of India’s major rivers.','Chandrayaan-3 landed near the Moon’s south pole in 2023.'],f:1,why:'Mount Everest is on the border of Nepal and China, not in Gujarat.'},
+ {topic:'Tell me about Germany.',s:['Berlin is the capital of Germany.','Germany uses the euro as its money.','Germany has a long coastline on the Pacific Ocean.','The Berlin Wall fell in 1989.'],f:2,why:'Germany’s coast is on the North Sea and the Baltic Sea, in Europe. The Pacific is far away.'},
+ {topic:'How reliable are AI chatbots?',s:['Chatbots can create text from a prompt in seconds.','Chatbots can sometimes give wrong answers that sound very confident.','It is smart to check important AI answers with a trusted source.','Chatbots are always 100% correct because they have read the whole internet.'],f:3,why:'No AI is always correct. The internet itself contains mistakes, and AI can also invent things.'}
+];
+function a3(){
+  const st=shellA('a3','A student asked an AI a question. The AI answered with 4 sentences, but one of them is made up. Tap the sentence you think is the hallucination.');
+  let i=0,score=0;
+  const draw=()=>{
+    st.innerHTML=`<div class="box"><div class="prog"><i style="width:${i/A3.length*100}%"></i></div><div id="b"></div></div>`;const b=$('b');
+    if(i>=A3.length){
+      record('a3',{score,total:A3.length,detail:`Caught the made-up fact first try in ${score} of ${A3.length} answers.`});
+      b.innerHTML=`<h3>Hunt complete! 🔍</h3><p>You caught ${score} of ${A3.length} hallucinations on your first try.</p><div class="callout" style="--c:var(--sky)">${B.hum} <b>Golden rule:</b> AI answers can look perfect and still be wrong. Check facts with a textbook, a trusted website or your teacher.</div><div class="row">${backBtn()}<button class="btn sm" id="ag">Try again</button></div>`;
+      wireHome();$('ag').onclick=a3;return;
+    }
+    const c=A3[i];let first=true;
+    b.innerHTML=`<p class="muted">Answer ${i+1} of ${A3.length}</p><div class="chat"><span class="who2">Student asked</span>${c.topic}</div>
+     <p style="font-weight:700">AI’s answer. Which sentence is false?</p>
+     ${c.s.map((t,k)=>`<button class="stmt" data-k="${k}">${t}</button>`).join('')}<div id="fb"></div>`;
+    b.querySelectorAll('.stmt').forEach(btn=>btn.onclick=()=>{
+      const k=+btn.dataset.k;
+      if(k===c.f){
+        if(first)score++;btn.classList.add('right');b.querySelectorAll('.stmt').forEach(x=>x.disabled=true);
+        $('fb').innerHTML=`<div class="msg good">Caught it!</div><p>${c.why}</p><button class="btn sm" id="n">Next answer</button>`;$('n').onclick=()=>{i++;draw()};
+      }else{first=false;btn.classList.add('wrong');btn.disabled=true;$('fb').innerHTML='<div class="msg bad">That one is actually true. Look again.</div>'}
+    });
+  };draw();
+}
+
+/* ============ A4 Creator's Choice ============ */
+const A4=[
+ {s:'You use AI to brainstorm ideas for your science fair poster, then design the poster yourself.',a:0,b:['lit'],why:'Brainstorming with AI and then doing your own work is a great way to use it.'},
+ {s:'You share an AI-made artwork of a dragon flying over your city on your class Instagram page.',a:1,b:['act'],why:'It’s fine to share, but label it as AI-made so nobody thinks it’s a real photo or your hand drawing.'},
+ {s:'You make an AI video of your classmate saying things they never said, “just for fun”.',a:2,b:['act','hum'],why:'This is a deepfake of a real person without permission. It can hurt and embarrass them, even as a joke.'},
+ {s:'You paste your friend’s full name, phone number and home address into a chatbot to write a party invite.',a:2,b:['gdpr'],why:'That is your friend’s personal data. Use placeholders like [name] and [address] and fill them in yourself.'},
+ {s:'You ask AI to check the grammar in an essay you wrote yourself.',a:0,b:['lit'],why:'Using AI like a spell-checker on your own work is fine. Follow your teacher’s rules if they say otherwise.'},
+ {s:'You hand in an essay that AI wrote for you, as if you wrote it all yourself.',a:2,b:['hum'],why:'That’s not honest, and you miss the learning. If AI is allowed, say how you used it and add your own thinking.'},
+ {s:'You use an AI voice to narrate your class project video.',a:1,b:['act'],why:'Great idea, just mention in the credits that the voice is AI-generated.'},
+ {s:'An AI tells you how much of a medicine to take for a headache, and you follow it without asking anyone.',a:2,b:['hum'],why:'Health decisions need a real adult or doctor. AI can be wrong, and here a mistake could harm you.'}
+];
+const CH=['✅ Go ahead','🏷️ OK, but label it','⛔ Don’t do it'];
+function a4(){
+  const st=shellA('a4','Read each situation. Decide what a responsible AI creator should do: go ahead, go ahead but label it as AI-made, or don’t do it. The coloured badges show which rule or principle it connects to.');
+  let i=0,score=0;
+  const draw=()=>{
+    st.innerHTML=`<div class="box"><div class="prog"><i style="width:${i/A4.length*100}%"></i></div><div id="b"></div></div>`;const b=$('b');
+    if(i>=A4.length){
+      record('a4',{score,total:A4.length,detail:`Made the responsible choice in ${score} of ${A4.length} situations.`});
+      b.innerHTML=`<h3>You finished all ${A4.length} situations ⚖️</h3><p>You made the responsible choice ${score} times out of ${A4.length}.</p><p>Four rules to remember: check facts, label AI content, protect personal data, respect real people.</p><div class="row">${backBtn()}<button class="btn sm" id="ag">Try again</button></div>`;
+      wireHome();$('ag').onclick=a4;return;
+    }
+    const c=A4[i];
+    b.innerHTML=`<p class="muted">Situation ${i+1} of ${A4.length}</p><div class="scen">${c.s}</div>
+      <div class="three">${CH.map((t,k)=>`<button data-k="${k}">${t}</button>`).join('')}</div><div id="fb"></div>`;
+    b.querySelectorAll('.three button').forEach(btn=>btn.onclick=()=>{
+      const k=+btn.dataset.k,ok=k===c.a;if(ok)score++;
+      b.querySelectorAll('.three button').forEach(x=>{x.disabled=true;if(+x.dataset.k===c.a)x.classList.add('right')});if(!ok)btn.classList.add('wrong');
+      $('fb').innerHTML=`<div class="msg ${ok?'good':'bad'}">${ok?'Responsible choice!':'Best choice: '+CH[c.a]}</div><p>${c.why}</p><div>${c.b.map(x=>B[x]).join('')}</div><button class="btn sm" id="n" style="margin-top:10px">Next situation</button>`;
+      $('n').onclick=()=>{i++;draw()};
+    });
+  };draw();
+}
+
+/* ============ A5 AI Creator Studio ============ */
+const KINDS=[
+ {k:'Poster',e:'🎨',d:'An image + slogan for a cause you care about',tip:'Describe the scene, colours, style and the slogan text.'},
+ {k:'Comic story',e:'📖',d:'A short comic with characters and panels',tip:'Say who the characters are, the story idea, and how many panels.'},
+ {k:'Podcast intro',e:'🎙️',d:'A 30-second intro for your own show',tip:'Give the show name, topic, audience, and the mood of the voice.'},
+ {k:'Game character',e:'🎮',d:'A hero or villain for a game you imagine',tip:'Describe looks, powers, personality and the art style.'}
+];
+const FIXES=['Too long','Too boring','Wrong style','Missing details','Too hard to understand','Wrong audience'];
+function a5(){
+  const st=shellA('a5','Plan a real AI creation in 4 steps: choose what to make, write your first prompt, improve it, then add your creator label and safety check. You’ll get an AI Creator card at the end, which also goes into your result.');
+  const p=S.res.a5?JSON.parse(JSON.stringify(S.res.a5)):{kind:null,v1:'',fixes:[],v2:'',label:'',checks:[false,false,false,false]};
+  let step=p.kind===null?0:0;
+  const names=['Choose','Prompt 1','Improve','Label & check','Creator card'];
+  function frame(inner){st.innerHTML=`<div class="box"><div class="steps">${names.map((n,i)=>`<span class="${i===step?'on':''}">${i+1}. ${n}</span>`).join('')}</div>${inner}<div class="msg bad" id="er"></div></div>`}
+  function draw(){
+    if(step===0){
+      frame(`<h3>What will you create?</h3><div class="kinds">${KINDS.map((x,i)=>`<button data-i="${i}" aria-pressed="${p.kind===i}"><b>${x.e} ${x.k}</b>${x.d}</button>`).join('')}</div>
+        <div class="row" style="margin-top:16px"><button class="btn" id="nx">Next</button></div>`);
+      st.querySelectorAll('.kinds button').forEach(b=>b.onclick=()=>{p.kind=+b.dataset.i;st.querySelectorAll('.kinds button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'))});
+      $('nx').onclick=()=>{if(p.kind===null){$('er').textContent='Choose one type of creation first.';return}step=1;draw()};
+    }else if(step===1){
+      const K=KINDS[p.kind];
+      frame(`<h3>Write your first prompt for your ${K.k.toLowerCase()}</h3><p class="muted">${K.tip} Try to use the 5 ingredients: role, task, context, format, limits.</p>
+        <div class="fld"><textarea id="v1" style="min-height:130px" placeholder="You are…  Create…  for…  Show it as…  Keep it…">${esc(p.v1)}</textarea></div>
+        <div class="row"><button class="btn line sm" id="bk">Back</button><button class="btn" id="nx">Next</button></div>`);
+      $('v1').oninput=e=>p.v1=e.target.value;
+      $('bk').onclick=()=>{step=0;draw()};
+      $('nx').onclick=()=>{if(p.v1.trim().split(/\s+/).length<8){$('er').textContent='Write a bit more: at least 8 words, so the AI knows what you want.';return}step=2;draw()};
+    }else if(step===2){
+      frame(`<h3>Imagine the AI’s first result wasn’t perfect</h3><p>That happens to every creator! What would you want to fix? Tick one or more.</p>
+        <div class="row" style="margin-bottom:14px">${FIXES.map(f=>`<button class="btn line sm fx" aria-pressed="${p.fixes.includes(f)}" data-f="${f}" style="${p.fixes.includes(f)?'background:var(--ink);color:#fff':''}">${f}</button>`).join('')}</div>
+        <div class="chat"><span class="who2">Your first prompt</span>${esc(p.v1)}</div>
+        <p style="font-weight:700;margin-bottom:6px">Now write your improved prompt (version 2):</p>
+        <div class="fld"><textarea id="v2" style="min-height:130px" placeholder="Start from your first prompt and fix what you ticked.">${esc(p.v2||p.v1)}</textarea></div>
+        <div class="row"><button class="btn line sm" id="bk">Back</button><button class="btn" id="nx">Next</button></div>`);
+      if(!p.v2)p.v2=p.v1;
+      st.querySelectorAll('.fx').forEach(b=>b.onclick=()=>{const f=b.dataset.f;p.fixes=p.fixes.includes(f)?p.fixes.filter(x=>x!==f):p.fixes.concat(f);draw()});
+      $('v2').oninput=e=>p.v2=e.target.value;
+      $('bk').onclick=()=>{step=1;draw()};
+      $('nx').onclick=()=>{
+        if(!p.fixes.length){$('er').textContent='Tick at least one thing you would fix.';return}
+        if(p.v2.trim()===p.v1.trim()){$('er').textContent='Change your prompt a little to fix what you ticked.';return}
+        step=3;draw()};
+    }else if(step===3){
+      if(!p.label)p.label=`Made with help from AI. Idea, prompts and final choices by ${S.name}.`;
+      const CK=['I will check any facts before sharing it.','I did not use anyone’s personal data (names, numbers, addresses, photos).','It does not fake or make fun of any real person.','I will show the AI label wherever I share it.'];
+      frame(`<h3>Your creator label</h3><p class="muted">This tells people AI helped. You can edit it.</p>
+        <div class="fld"><textarea id="lb">${esc(p.label)}</textarea></div>
+        <p>${B.act} ${B.gdpr} ${B.hum}</p>
+        <h3>Safety check</h3><div class="checks">${CK.map((c,i)=>`<label><input type="checkbox" data-i="${i}" ${p.checks[i]?'checked':''}>${c}</label>`).join('')}</div>
+        <div class="row" style="margin-top:16px"><button class="btn line sm" id="bk">Back</button><button class="btn pink" id="nx">Make my creator card</button></div>`);
+      $('lb').oninput=e=>p.label=e.target.value;
+      st.querySelectorAll('.checks input').forEach(c=>c.onchange=()=>p.checks[+c.dataset.i]=c.checked);
+      $('bk').onclick=()=>{step=2;draw()};
+      $('nx').onclick=()=>{
+        if(p.label.trim().length<10){$('er').textContent='Please write a short AI label.';return}
+        if(p.checks.some(c=>!c)){$('er').textContent='Tick all 4 safety checks. A responsible creator checks every one.';return}
+        record('a5',Object.assign({},p,{score:4,total:4,detail:`Planned a ${KINDS[p.kind].k.toLowerCase()}, improved the prompt, labelled it and passed the safety check.`}));
+        step=4;draw()};
+    }else{
+      const K=KINDS[p.kind];
+      frame(`<div class="cc"><p class="muted" style="margin:0">AI Creator card</p><h2>${K.e} ${esc(S.name)}’s ${K.k}</h2>
+        <b>Prompt version 1</b><pre>${esc(p.v1)}</pre>
+        <b>What I improved:</b> ${p.fixes.map(esc).join(', ')}
+        <pre style="margin-top:8px"><b>Prompt version 2</b>\n${esc(p.v2)}</pre>
+        <b>AI label</b><pre>${esc(p.label)}</pre>
+        <p style="margin:0;color:var(--green);font-weight:700">✓ Safety check passed</p></div>
+        <p style="margin-top:16px">Next step: with your teacher, try your version 2 prompt in a real AI tool and compare it with version 1.</p>
+        <div class="row"><button class="btn line sm" id="ed">Edit my plan</button><button class="btn pink sm" id="rs">Go to my result</button>${backBtn()}</div>`);
+      wireHome();$('ed').onclick=()=>{step=1;draw()};$('rs').onclick=()=>go('res');
+    }
+  }
+  draw();
+}
+
+/* ============ results ============ */
+const fmtDate=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+function results(){
+  const nr=Object.keys(S.read).length;
+  $('main').innerHTML=`<div class="homehead"><h1>My result</h1><div class="stk-row">${STK.party()}</div></div>
+   <p style="font-size:22px"><b>${esc(S.name)}</b> · ${esc(clsLabel())} · ${fmtDate(new Date())}</p>
+   <p class="muted">Topics read: ${nr} of 3</p>
+   <div class="box" style="margin-bottom:18px">${ACTS.map((a,i)=>{const r=S.res[a.id];
+     return `<div class="rrow"><div><b>${a.icon} ${a.title}</b><br><span class="muted">${r?esc(r.detail):'Not done yet'}</span></div><div style="font-weight:700;color:${r?'var(--green)':'var(--soft)'}">${r?(a.id==='a2'||a.id==='a5'?'Completed':r.score+' / '+r.total):'—'}</div></div>`}).join('')}</div>
+   <div class="box" style="border-color:var(--pink)"><h3>Send your result to your teacher</h3>
+    <p>Download your result as a PDF, then send it on WhatsApp, email or Google Classroom. It includes your prompts and your creator card.</p>
+    <div class="row"><button class="btn pink" id="dl">Download my result (PDF)</button><button class="btn line" id="cp">Copy as text</button></div>
+    <div class="msg" id="dm"></div></div>`;
+  $('dl').onclick=downloadPDF;$('cp').onclick=copyText;
+}
+function clean(s){return String(s).replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,'-').replace(/\u2026/g,'...').replace(/\u00B7/g,'-').replace(/[^\x00-\xFF]/g,'').replace(/\s+\n/g,'\n')}
+function plain(){
+  let t=`GenAI & Prompting - AI Creator Lab (Young IT Germany)\nName: ${S.name}\nClass: ${S.klass}\nDate: ${fmtDate(new Date())}\nTopics read: ${Object.keys(S.read).length} of 3\n`;
+  ACTS.forEach(a=>{const r=S.res[a.id];t+=`\n${a.title}: ${r?r.detail:'Not done yet'}`});
+  if(S.res.a2)t+=`\n\nMy Prompt Builder prompt:\n${S.res.a2.prompt}`;
+  if(S.res.a5){const p=S.res.a5;t+=`\n\nAI Creator card (${KINDS[p.kind].k})\nPrompt v1: ${p.v1}\nImproved: ${p.fixes.join(', ')}\nPrompt v2: ${p.v2}\nAI label: ${p.label}`}
+  return t;
+}
+async function copyText(){
+  const m=$('dm'),t=plain();
+  try{await navigator.clipboard.writeText(t);m.className='msg good';m.textContent='Copied! Paste it into a message to your teacher.'}
+  catch(e){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();
+    m.className='msg '+(ok?'good':'bad');m.textContent=ok?'Copied! Paste it into a message to your teacher.':'Copy is blocked here. Please use the PDF download.'}
+}
+function buildPDF(){
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'}),W=210,L=16,R=W-16;let y=0;
+  const col=h=>[0,2,4].map(i=>parseInt(h.substr(i,2),16));
+  function head(){doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(79,70,229);doc.text('Young IT Germany',L,10)}
+  function need(h){if(y+h>282){doc.addPage();head();y=20}}
+  function para(txt,size,bold,color){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor(...(color||[31,37,68]));
+    const lines=doc.splitTextToSize(clean(txt),R-L);lines.forEach(l=>{need(size*0.45);doc.text(l,L,y);y+=size*0.45});}
+  head();
+  doc.setFillColor(31,37,68);doc.rect(0,16,W,34,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(22);doc.text('GenAI & Prompting - AI Creator Lab',L,32);
+  doc.setFontSize(12);doc.setFont('helvetica','normal');doc.text('Student result',L,42);
+  doc.setFillColor(232,69,124);doc.rect(0,50,W,2,'F');
+  y=64;
+  para('Name: '+S.name,15,true);y+=1;
+  para(`${clsLabel()}   |   Date: ${fmtDate(new Date())}   |   Topics read: ${Object.keys(S.read).length} of 3`,11,false,[91,97,130]);y+=5;
+  const colors={a1:'4F46E5',a2:'F2A20C',a3:'1E9BD7',a4:'12A26B',a5:'E8457C'};
+  ACTS.forEach(a=>{
+    const r=S.res[a.id];need(18);
+    doc.setFillColor(...col(colors[a.id]));doc.rect(L,y-4.5,2.5,13,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(31,37,68);doc.text(clean(a.title),L+6,y);
+    if(r&&!['a2','a5'].includes(a.id)){doc.text(`${r.score} / ${r.total}`,R,y,{align:'right'})}
+    else if(r){doc.setTextColor(18,162,107);doc.text('Completed',R,y,{align:'right'})}
+    doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(91,97,130);
+    const d=doc.splitTextToSize(clean(r?r.detail:'Not done yet'),R-L-8);doc.text(d,L+6,y+6);y+=8+d.length*4.5;
+  });
+  if(S.res.a2){y+=4;para('My Prompt Builder prompt',13,true);y+=1;const p=S.res.a2.parts;
+    PARTS.forEach(([k,n])=>para(`${n}: ${p[k]}`,11,false));}
+  if(S.res.a5){const p=S.res.a5;y+=5;need(20);
+    para(`My AI Creator card: ${KINDS[p.kind].k}`,13,true,[232,69,124]);y+=1;
+    para('Prompt version 1:',11,true);para(p.v1,11,false);y+=2;
+    para('What I improved: '+p.fixes.join(', '),11,false);y+=2;
+    para('Prompt version 2:',11,true);para(p.v2,11,false);y+=2;
+    para('AI label: '+p.label,11,false);y+=1;
+    para('Safety check passed: facts, personal data, real people, AI label.',11,true,[18,162,107]);}
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(91,97,130);
+  doc.text('Please send this result to your teacher.',W/2,290,{align:'center'});
+  return doc;
+}
+async function downloadPDF(){
+  const m=$('dm');
+  if(!window.jspdf){m.className='msg bad';m.textContent='The PDF maker is still loading. Wait a moment, then tap Download again.';return}
+  const doc=buildPDF(),fn=('GenAI_Creator_Result_'+S.name+'_'+S.klass).replace(/[^A-Za-z0-9_\- ]/g,'').replace(/\s+/g,'_')+'.pdf';
+  const dl=await getDl();
+  if(dl){try{await dl.save({filename:fn,data:doc.output('blob')});m.className='msg good';m.textContent='Saved! Now send the PDF to your teacher.'}
+    catch(e){m.className='msg bad';m.textContent=e&&e.code==='declined'?'Download cancelled. Tap Download when you’re ready.':e&&e.code==='rate_limited'?'Wait a few seconds, then try again.':'Download isn’t working here. Use Copy as text and send that instead.'}}
+  else{try{doc.save(fn);m.className='msg good';m.textContent='Saved! Now send the PDF to your teacher.'}catch(e){m.className='msg bad';m.textContent='Download isn’t working here. Use Copy as text instead.'}}
+}
+
+/* ============ boot ============ */
+$('loginStk').innerHTML=STK.wave()+STK.coder()+STK.painter();
+if(S.name)enterApp();
+</script>
+</body>
+</html>
